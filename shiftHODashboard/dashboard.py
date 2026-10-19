@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Handover Ticket Dashboard Generator
-Reads SnowAlert.xlsx, SnowCase.xlsx, SPCReport.xlsx -> outputs dashboard.html
+Reads SnowAlert.xlsx, SnowCase.xlsx, SnowInc.xlsx, SPCReport.xlsx -> outputs dashboard.html
 Run: python3 dashboard.py                  # auto-detect current shift
      python3 dashboard.py morning          # force morning shift  (08:00-16:00 EET)
      python3 dashboard.py evening          # force evening shift  (16:00-00:00 EET)
@@ -23,6 +23,7 @@ except ImportError:
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 SNOW_ALERT  = os.path.join(SCRIPT_DIR, "SnowAlert.xlsx")
 SNOW_CASE   = os.path.join(SCRIPT_DIR, "SnowCase.xlsx")
+SNOW_INC    = os.path.join(SCRIPT_DIR, "SnowInc.xlsx")
 SPC_REPORT  = os.path.join(SCRIPT_DIR, "SPCReport.xlsx")
 OUT_HTML    = os.path.join(SCRIPT_DIR, "dashboard.html")
 HO_STATUS   = os.path.join(SCRIPT_DIR, "ho_status.json")
@@ -461,18 +462,19 @@ def stat_tile(label, total, pcounts):
 </div>"""
 
 
-def build_html(ah, ar, ch, cr, sh, sr_current, sr_next, sr_lr, sr_updated, sm,
+def build_html(ah, ar, ch, cr, ih, ir, sh, sr_current, sr_next, sr_lr, sr_updated, sm,
                ho_status=None, shift_label="", next_shift_label="", prev_shift_label=""):
     now         = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     spc_updated = sm.get("last_updated", "—") + " " + sm.get("timezone", "")
     spc_title   = sm.get("title", "SPC Tickets")
     ho_json     = json.dumps(ho_status or {}, ensure_ascii=False)
 
-    a_pri = safe_col(ah, "Priority"); c_pri = safe_col(ch, "Priority"); s_pri = safe_col(sh, "Priority")
+    a_pri = safe_col(ah, "Priority"); c_pri = safe_col(ch, "Priority"); s_pri = safe_col(sh, "Priority"); i_pri = safe_col(ih, "Priority")
     a_st  = safe_col(ah, "State");    c_st  = safe_col(ch, "State");    s_st  = safe_col(sh, "Status")
 
     sr_all = sr_current + sr_next + sr_lr + sr_updated
     apc, cpc, spc_c = count_by_priority(ar, a_pri), count_by_priority(cr, c_pri), count_by_priority(sr_all, s_pri)
+    ipc = count_by_priority(ir, i_pri)
 
     sched_activities = len(sr_current) + len(sr_next)
 
@@ -490,6 +492,11 @@ def build_html(ah, ar, ch, cr, sh, sr_current, sr_next, sr_lr, sr_updated, sm,
         pri_col="Priority", link_col="Number", rename=case_rename, link_url=snow_url,
         col_format={"Updated": reformat_date_dmy}, sort_col="Updated", sort_desc=True,
         editable_col="HO Status", section_id="cases", longrunner=True, hideable=True)
+    inc_t = render_table(ih, ir,
+        [c for c in ["Number","Priority","State","Assigned to","Short description","Subject","Install Base Item","Updated"] if c in ih],
+        pri_col="Priority", link_col="Number", rename=snow_rename, link_url=snow_url,
+        col_format={"Updated": reformat_date_dmy}, sort_col="Updated", sort_desc=True,
+        editable_col="HO Status", section_id="inc", longrunner=True, hideable=True)
     spc_cols = [c for c in ["Ticket ID","Ticket Type","Priority","Status","Processor","Subject","Last Changed At","Service Execution ID","Process Execution ID","Process Execution Status"] if c in sh]
     spc_rename = {"Service Execution ID": "SE ID", "Process Execution ID": "PID ID", "Process Execution Status": "PID Status"}
     spc_multi_links = {
@@ -681,11 +688,13 @@ tr.row-hidden{{opacity:.5;background:repeating-linear-gradient(135deg,transparen
 <div class="stats">
   {stat_tile("Snow Cases",  len(cr), cpc)}
   {stat_tile("Snow Alerts", len(ar), apc)}
+  {stat_tile("Snow Internal INCs", len(ir), ipc)}
   {stat_tile("SPC Tickets Updated Former Shift", len(sr_updated), spc_c)}
 </div>
 
-{section("cases",  "&#x1F4CB;",        "Snow Cases",       len(cr), case_t,  subtitle=shift_label)}
-{section("alerts", "&#x26A0;&#xFE0F;", "Snow Alerts",      len(ar), alert_t, subtitle=shift_label)}
+{section("cases",  "&#x1F4CB;",        "Snow Cases",          len(cr), case_t,  subtitle=shift_label)}
+{section("alerts", "&#x26A0;&#xFE0F;", "Snow Alerts",         len(ar), alert_t, subtitle=shift_label)}
+{section("inc",    "&#x1F6A8;",        "Snow Internal INCs",  len(ir), inc_t,   subtitle=shift_label)}
 
 <div class="section">
   <div class="section-header" onclick="toggle('spc')">
@@ -855,12 +864,13 @@ function filterPri(cid, cls, btn) {{
 
 # ── entry point ───────────────────────────────────────────────────────────────
 
-def notify_teams(shift_label, snow_alerts, snow_cases, spc_current, spc_next,
+def notify_teams(shift_label, snow_alerts, snow_cases, snow_incs, spc_current, spc_next,
                  spc_lr, spc_updated):
     total_spc = spc_current + spc_next + spc_lr + spc_updated
     message = (
         f"📊 Shift Dashboard ready — {shift_label}\n"
         f"🔔 Snow Alerts: {snow_alerts}  |  📋 Snow Cases: {snow_cases}  |  "
+        f"🚨 Internal INCs: {snow_incs}  |  "
         f"🎫 SPC Tickets: {total_spc} "
         f"(Current: {spc_current}, Next: {spc_next}, "
         f"Longrunners: {spc_lr}, Updated: {spc_updated})"
@@ -894,7 +904,7 @@ def main():
             print("Refreshing SPC data …")
             _spc_download()
             print("Refreshing Snow data …")
-            _snow_download(do_alert=True, do_case=True)
+            _snow_download(do_alert=True, do_case=True, do_inc=True)
 
     now_eet    = datetime.now(EET)
     shift_name = arg or detect_shift(now_eet)
@@ -921,6 +931,13 @@ def main():
                                         safe_col(ch, "Number"), flagged_c)
     print(f"  {len(cr)} total → {len(cr_filtered)} (current shift + {len(flagged_c)} longrunners)")
 
+    print("Reading Snow Internal INCs …")
+    ih, ir   = read_snow_xlsx(SNOW_INC)
+    flagged_i = get_flagged_ids(ho_status, "inc")
+    ir_filtered = filter_snow_by_shift(ir, safe_col(ih, "Updated"), shift_start, shift_end,
+                                        safe_col(ih, "Number"), flagged_i)
+    print(f"  {len(ir)} total → {len(ir_filtered)} (current shift + {len(flagged_i)} longrunners)")
+
     print("Reading SPC Report  …")
     sh, sr, sm = read_spc_xlsx(SPC_REPORT)
     flagged_s   = get_flagged_ids(ho_status, "spc")
@@ -937,7 +954,7 @@ def main():
           f"longrunners: {len(sr_lr)}, updated this shift: {len(sr_updated)}")
 
     print("Generating dashboard …")
-    html = build_html(ah, ar_filtered, ch, cr_filtered, sh,
+    html = build_html(ah, ar_filtered, ch, cr_filtered, ih, ir_filtered, sh,
                       sr_current, sr_next, sr_lr, sr_updated, sm,
                       ho_status=ho_status, shift_label=shift_label,
                       next_shift_label=next_shift_label,
@@ -947,7 +964,7 @@ def main():
     print(f"Saved  → {OUT_HTML}")
     webbrowser.open(f"file://{OUT_HTML}")
     print("Opened in browser.")
-    notify_teams(shift_label, len(ar_filtered), len(cr_filtered),
+    notify_teams(shift_label, len(ar_filtered), len(cr_filtered), len(ir_filtered),
                  len(sr_current), len(sr_next), len(sr_lr), len(sr_updated))
 
 

@@ -1,11 +1,12 @@
 """
-Automates the SnowAlert / SnowCase Excel export from itsm.services.sap.
+Automates the SnowAlert / SnowCase / SnowInc Excel export from itsm.services.sap.
 
 Usage:
-  python3 snow_download.py --setup          # First time: log in manually and save session
-  python3 snow_download.py --alert          # Download SnowAlert.xlsx
-  python3 snow_download.py --case           # Download SnowCase.xlsx
-  python3 snow_download.py --alert --case   # Download both
+  python3 snow_download.py --setup                    # First time: log in manually and save session
+  python3 snow_download.py --alert                    # Download SnowAlert.xlsx
+  python3 snow_download.py --case                     # Download SnowCase.xlsx
+  python3 snow_download.py --inc                      # Download SnowInc.xlsx
+  python3 snow_download.py --alert --case --inc       # Download all three
 """
 
 import argparse
@@ -38,6 +39,16 @@ SNOW_CASE_URL = (
     "RlSU5udWxsLDEsMTBedV9hcHBfY29tcG9uZW50LnVfbmFtZVNUQVJUU1dJVEhQQ08tT1BTXk9SREVS"
     "QllERVNDc3lzX3VwZGF0ZWRfb25eR1JPVVBCWXVfYXBwX2NvbXBvbmVudCIsImN1cnJlbnRQYWdlIjow"
     "fX19fQ%3D%3D"
+)
+
+SNOW_INC_URL = (
+    "https://itsm.services.sap/now/sow/list/params/list-id/ab4a9da22fe9b69cb9d4fb2cbfa4e38f"
+    "/__state__/b64~eyJlNGQ0NmFiM2ViYzQxMjEwMzg5MGRkZGUyMzUyMjhhOCI6eyJsaXN0X2NvbnRyb2"
+    "xsZXIiOnsiXyI6eyJncm91cEJ5IjoiIiwicXVlcnkiOiJhc3NpZ25tZW50X2dyb3VwLnN5c19pZElOam"
+    "F2YXNjcmlwdDpnbG9iYWwuc2FwX3VzZXJHcm91cHMoKTteT1J1X2FwcF9jb21wb25lbnQudV9wc19mdW"
+    "5jX25leElOamF2YXNjcmlwdDp4X3NhcGRhX2Nhc2VfYXBpLlNBUF9HZXRfVXNlcl9BcmVhKCk7XnN0YX"
+    "RlSU5udWxsLDEsMiwtM151X3NvdXJjZSE9ZXZlbnReR1JPVVBCWXVfYXBwX2NvbXBvbmVudF5PUkRFUk"
+    "JZREVTQ3N5c191cGRhdGVkX29uIiwiY3VycmVudFBhZ2UiOjB9fX19"
 )
 
 
@@ -131,13 +142,17 @@ def export_report(page, output_file: Path, debug: bool = False):
     return True
 
 
-def download_reports(do_alert: bool, do_case: bool, debug: bool = False):
+def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug: bool = False):
     if not SESSION_FILE.exists():
         print("No session found. Run with --setup first.")
         sys.exit(1)
 
     if do_case and not SNOW_CASE_URL:
         print("SNOW_CASE_URL is not set in snow_download.py — edit the file and add it.")
+        sys.exit(1)
+
+    if do_inc and not SNOW_INC_URL:
+        print("SNOW_INC_URL is not set in snow_download.py — edit the file and add it.")
         sys.exit(1)
 
     print("Launching browser with saved session …")
@@ -170,6 +185,18 @@ def download_reports(do_alert: bool, do_case: bool, debug: bool = False):
                 sys.exit(1)
             export_report(page, SCRIPT_DIR / "SnowCase.xlsx", debug)
 
+        if do_inc:
+            print("Navigating to Snow Internal INCs list …")
+            page.goto(SNOW_INC_URL)
+            try:
+                page.wait_for_selector("button", timeout=60_000)
+                page.wait_for_load_state("networkidle", timeout=60_000)
+            except PlaywrightTimeout:
+                print("Page took too long to load. Session may have expired — run --setup again.")
+                browser.close()
+                sys.exit(1)
+            export_report(page, SCRIPT_DIR / "SnowInc.xlsx", debug)
+
         context.storage_state(path=str(SESSION_FILE))
         browser.close()
 
@@ -180,13 +207,14 @@ if __name__ == "__main__":
                         help="First-time login: opens browser for manual login and saves session")
     parser.add_argument("--alert", action="store_true", help="Download SnowAlert.xlsx")
     parser.add_argument("--case",  action="store_true", help="Download SnowCase.xlsx")
+    parser.add_argument("--inc",   action="store_true", help="Download SnowInc.xlsx")
     parser.add_argument("--debug", action="store_true",
                         help="Dump dialog DOM and pause for inspection instead of downloading")
     args = parser.parse_args()
 
     if args.setup:
         setup_session()
-    elif args.alert or args.case:
-        download_reports(args.alert, args.case, args.debug)
+    elif args.alert or args.case or args.inc:
+        download_reports(args.alert, args.case, args.inc, args.debug)
     else:
         parser.print_help()
