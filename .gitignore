@@ -5,6 +5,7 @@ LogFile.log
 SoE.txt
 SQLScripts.sql
 SoE.md
+.vscode/
 spc_test.py
 SoE_Archive
 SnowAlert.csv
@@ -22,3 +23,4 @@ shiftHODashboard/dashboard_auto_err.log
 shiftHODashboard/dashboard_auto.log
 shiftHODashboard/dashboard_ready.txt
 shiftHODashboard/SnowInc.xlsx
+shfitHODashboard-btp/
