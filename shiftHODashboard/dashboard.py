@@ -384,7 +384,7 @@ def reformat_date_dmy(val):
     return val
 
 
-def render_table(headers, rows, show_cols, pri_col=None, link_col=None, rename=None, link_url=None, col_format=None, sort_col=None, sort_desc=False, editable_col=None, section_id="", longrunner=False, link_cols=None, sort_key_fn=None, hideable=False):
+def render_table(headers, rows, show_cols, pri_col=None, link_col=None, rename=None, link_url=None, col_format=None, sort_col=None, sort_desc=False, editable_col=None, section_id="", longrunner=False, link_cols=None, sort_key_fn=None, hideable=False, coverage_map=None):
     rename = rename or {}
     col_format = col_format or {}
     link_cols = link_cols or {}
@@ -404,10 +404,11 @@ def render_table(headers, rows, show_cols, pri_col=None, link_col=None, rename=N
     if not rows:
         return '<p class="empty">No tickets found.</p>'
 
-    hide_th   = '<th class="hide-th"></th>'            if hideable   else ""
-    lr_th     = '<th class="lr-th">Longrunner</th>'    if longrunner else ""
-    extra_th  = f'<th>{editable_col}</th>'             if editable_col else ""
-    th = hide_th + "".join(f"<th>{h}</th>" for h in actual) + lr_th + extra_th
+    hide_th   = '<th class="hide-th"></th>'            if hideable          else ""
+    lr_th     = '<th class="lr-th">Longrunner</th>'    if longrunner        else ""
+    extra_th  = f'<th>{editable_col}</th>'             if editable_col      else ""
+    cov_th    = '<th class="cov-th">Coverage</th>'     if coverage_map is not None else ""
+    th = hide_th + "".join(f"<th>{h}</th>" for h in actual) + lr_th + extra_th + cov_th
     tbody = []
     for row in rows:
         p_val = row[headers.index(pri_col)] if pri_col in headers else ""
@@ -444,7 +445,17 @@ def render_table(headers, rows, show_cols, pri_col=None, link_col=None, rename=N
         if editable_col:
             ho_key = f"ho:{section_id}:{ticket_key}"
             tds.append(f'<td><div class="ho-edit" contenteditable="true" data-key="{ho_key}" oninput="saveHO(this)"></div></td>')
-        tbody.append(f'<tr class="row-{pcls}" data-hide-key="{f"hide:{section_id}:{ticket_key}" if hideable else ""}">{hide_td}{"".join(tds)}</tr>')
+        if coverage_map is not None:
+            cov_label = coverage_map.get(ticket_key, "") if ticket_key else ""
+            if cov_label:
+                _cov_cls = {"Current Shift": "cov-current", "Next Shift": "cov-next",
+                            "Longrunner": "cov-lr", "Updated": "cov-updated"}.get(cov_label, "")
+                cov_cell = f'<span class="cov-badge {_cov_cls}">{cov_label}</span>'
+            else:
+                cov_cell = '<span class="cov-none">—</span>'
+            tds.append(f"<td>{cov_cell}</td>")
+        row_covered_cls = " row-covered" if (coverage_map is not None and ticket_key and ticket_key in coverage_map) else ""
+        tbody.append(f'<tr class="row-{pcls}{row_covered_cls}" data-hide-key="{f"hide:{section_id}:{ticket_key}" if hideable else ""}">{hide_td}{"".join(tds)}</tr>')
 
     return f'<div class="table-wrap"><table><thead><tr>{th}</tr></thead><tbody>{"".join(tbody)}</tbody></table></div>'
 
@@ -462,7 +473,7 @@ def stat_tile(label, total, pcounts):
 </div>"""
 
 
-def build_html(ah, ar, ch, cr, ih, ir, sh, sr_current, sr_next, sr_lr, sr_updated, sm,
+def build_html(ah, ar, ch, cr, ih, ir, sh, sr_all_raw, sr_current, sr_next, sr_lr, sr_updated, sm,
                ho_status=None, shift_label="", next_shift_label="", prev_shift_label=""):
     now         = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     spc_updated = sm.get("last_updated", "—") + " " + sm.get("timezone", "")
@@ -531,6 +542,28 @@ def build_html(ah, ar, ch, cr, ih, ir, sh, sr_current, sr_next, sr_lr, sr_update
         rename=spc_rename, link_cols=spc_multi_links, col_format=spc_col_fmt,
         sort_col="Last Changed At", sort_desc=True,
         editable_col="HO Status", section_id="spc-updated", longrunner=True, hideable=True)
+
+    spc_link_idx = safe_col(sh, "Ticket ID")
+    coverage = {}
+    for _r in sr_current:
+        _tid = _r[spc_link_idx] if spc_link_idx < len(_r) else ""
+        if _tid and _tid not in coverage: coverage[_tid] = "Current Shift"
+    for _r in sr_next:
+        _tid = _r[spc_link_idx] if spc_link_idx < len(_r) else ""
+        if _tid and _tid not in coverage: coverage[_tid] = "Next Shift"
+    for _r in sr_lr:
+        _tid = _r[spc_link_idx] if spc_link_idx < len(_r) else ""
+        if _tid and _tid not in coverage: coverage[_tid] = "Longrunner"
+    for _r in sr_updated:
+        _tid = _r[spc_link_idx] if spc_link_idx < len(_r) else ""
+        if _tid and _tid not in coverage: coverage[_tid] = "Updated"
+    spc_all_t = render_table(sh, sr_all_raw, spc_cols,
+        pri_col="Priority", link_col="Ticket ID",
+        link_url="https://spc.ondemand.com/open?ticket={}",
+        rename=spc_rename, link_cols=spc_multi_links, col_format=spc_col_fmt,
+        sort_col="Last Changed At", sort_desc=True,
+        editable_col="HO Status", section_id="spc-all", hideable=True,
+        coverage_map=coverage)
 
     def section(sid, icon, title, count, table_html, subtitle=""):
         sub_html = f'<span class="section-sub">{subtitle}</span>' if subtitle else ""
@@ -670,6 +703,16 @@ tr.row-p4{{background:var(--p4-bg)}}
 .hide-btn{{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:3px 5px;border-radius:4px;line-height:1}}
 .hide-btn:hover{{color:var(--p1);background:rgba(255,77,79,.15)}}
 tr.row-hidden{{opacity:.5;background:repeating-linear-gradient(135deg,transparent,transparent 6px,rgba(255,77,79,.06) 6px,rgba(255,77,79,.06) 12px) !important}}
+.cov-th{{width:110px}}
+.cov-badge{{display:inline-block;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;white-space:nowrap}}
+.cov-current{{background:rgba(82,196,26,.20);color:#52c41a}}
+.cov-next{{background:rgba(250,219,20,.20);color:#c8a800}}
+.cov-lr{{background:rgba(255,77,79,.20);color:#ff4d4f}}
+.cov-updated{{background:rgba(79,142,247,.20);color:#4f8ef7}}
+.cov-none{{color:var(--muted)}}
+tr.row-covered{{opacity:.4}}
+tr.row-covered:hover{{opacity:1;transition:opacity .15s}}
+.hide-covered tr.row-covered{{display:none}}
 </style>
 </head>
 <body>
@@ -709,6 +752,28 @@ tr.row-hidden{{opacity:.5;background:repeating-linear-gradient(135deg,transparen
     {subsection("spc-next",    "&#x1F7E1;", f"Next Shift &mdash; {next_shift_label}", len(sr_next), spc_next_t)}
     {subsection("spc-lr",      "&#x1F534;", "Longrunners", len(sr_lr), spc_lr_t)}
     {subsection("spc-updated", "&#x1F504;", f"Tickets Updated on Former Shift &mdash; {shift_label}", len(sr_updated), spc_updated_t)}
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header" onclick="toggle('spc-all')">
+    <span class="icon">&#x1F4C2;</span>
+    <h2>All SPC Tickets</h2>
+    <span class="section-sub">Complete XLSX &mdash; {len(sr_all_raw)} tickets</span>
+    <span class="count">{len(sr_all_raw)}</span>
+    <span class="toggle" id="spc-all-tog">&#9654;</span>
+  </div>
+  <div class="section-body" id="spc-all" style="display:none">
+    <div class="filter-bar">
+      <input type="text" placeholder="Filter&hellip;" oninput="filterText('spc-all-tbl', this.value)">
+      <button class="filter-btn" onclick="filterPri('spc-all-tbl','p1',this)">P1</button>
+      <button class="filter-btn" onclick="filterPri('spc-all-tbl','p2',this)">P2</button>
+      <button class="filter-btn" onclick="filterPri('spc-all-tbl','p3',this)">P3</button>
+      <button class="filter-btn" onclick="filterPri('spc-all-tbl','p4',this)">P4</button>
+      <button class="filter-btn show-hidden-btn" data-tbl="spc-all-tbl" data-showing="0" onclick="toggleHidden(this)">Show hidden (0)</button>
+      <button class="filter-btn toggle-covered-btn" data-tbl="spc-all-tbl" data-hiding="0" onclick="toggleCovered(this)">Show only uncovered (0)</button>
+    </div>
+    <div id="spc-all-tbl">{spc_all_t}</div>
   </div>
 </div>
 
@@ -780,6 +845,19 @@ function toggleHidden(btn) {{
   btn.textContent = (showing ? 'Show hidden' : 'Hide hidden') + ' (' + rows.length + ')';
   btn.classList.toggle('active', !showing);
 }}
+function toggleCovered(btn) {{
+  var tbl = document.getElementById(btn.dataset.tbl);
+  var hiding = btn.dataset.hiding !== '1';
+  if (hiding) {{
+    tbl.classList.add('hide-covered');
+  }} else {{
+    tbl.classList.remove('hide-covered');
+  }}
+  btn.dataset.hiding = hiding ? '1' : '0';
+  var uncovered = tbl.querySelectorAll('tbody tr:not(.row-covered):not(.row-hidden)').length;
+  btn.textContent = (hiding ? 'Show all' : 'Show only uncovered') + ' (' + uncovered + ' uncovered)';
+  btn.classList.toggle('active', hiding);
+}}
 document.addEventListener('DOMContentLoaded', function() {{
   document.querySelectorAll('.ho-edit').forEach(function(el) {{
     var key = el.dataset.key;
@@ -807,6 +885,13 @@ document.addEventListener('DOMContentLoaded', function() {{
   }});
   var infoVal = sharedNotes['info:notes'] || localStorage.getItem('info:notes') || '';
   if (infoVal) document.getElementById('info-area').innerText = infoVal;
+  document.querySelectorAll('.toggle-covered-btn').forEach(function(btn) {{
+    var tbl = document.getElementById(btn.dataset.tbl);
+    if (tbl) {{
+      var uncovered = tbl.querySelectorAll('tbody tr:not(.row-covered):not(.row-hidden)').length;
+      btn.textContent = 'Show only uncovered (' + uncovered + ' uncovered)';
+    }}
+  }});
 }});
 function exportNotes() {{
   var notes = Object.assign({{}}, sharedNotes);
@@ -954,7 +1039,7 @@ def main():
           f"longrunners: {len(sr_lr)}, updated this shift: {len(sr_updated)}")
 
     print("Generating dashboard …")
-    html = build_html(ah, ar_filtered, ch, cr_filtered, ih, ir_filtered, sh,
+    html = build_html(ah, ar_filtered, ch, cr_filtered, ih, ir_filtered, sh, sr,
                       sr_current, sr_next, sr_lr, sr_updated, sm,
                       ho_status=ho_status, shift_label=shift_label,
                       next_shift_label=next_shift_label,
