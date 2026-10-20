@@ -8,7 +8,7 @@ Run: python3 dashboard.py                  # auto-detect current shift
      python3 dashboard.py night            # force night shift    (00:00-08:00 EET)
 """
 
-import os, sys, zipfile, webbrowser, re, json
+import os, sys, zipfile, re, json
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import xml.etree.ElementTree as ET
@@ -1047,7 +1047,6 @@ def main():
     with open(OUT_HTML, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"Saved  → {OUT_HTML}")
-    webbrowser.open(f"file://{OUT_HTML}")
     print("Opened in browser.")
     notify_teams(shift_label, len(ar_filtered), len(cr_filtered), len(ir_filtered),
                  len(sr_current), len(sr_next), len(sr_lr), len(sr_updated))
