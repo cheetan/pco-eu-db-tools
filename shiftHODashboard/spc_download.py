@@ -63,7 +63,7 @@ def download_report():
         page = context.new_page()
 
         print(f"Navigating to SPC …")
-        page.goto(SPC_URL)
+        page.goto(SPC_URL, timeout=60_000)
 
         # Wait for the ticket list to load (SAPUI5 apps are slow to initialise)
         print("Waiting for page to load …")
