@@ -10,6 +10,7 @@ The downloaded file is saved as SPCReport.xlsx in the same folder as this script
 
 import argparse
 import sys
+import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
@@ -63,7 +64,19 @@ def download_report():
         page = context.new_page()
 
         print(f"Navigating to SPC …")
-        page.goto(SPC_URL, timeout=60_000)
+        for _attempt in range(1, 4):
+            try:
+                page.goto(SPC_URL, timeout=60_000)
+                break
+            except PlaywrightTimeout:
+                if _attempt < 3:
+                    print(f"Navigation timed out (attempt {_attempt}/3). Waiting 30s before retry…")
+                    time.sleep(30)
+                    page = context.new_page()
+                else:
+                    print("Navigation failed after 3 attempts. VPN may not be connected.")
+                    browser.close()
+                    sys.exit(1)
 
         # Wait for the ticket list to load (SAPUI5 apps are slow to initialise)
         print("Waiting for page to load …")
