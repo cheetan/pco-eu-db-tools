@@ -12,7 +12,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout, Error as PlaywrightError
 
 SCRIPT_DIR   = Path(__file__).parent
 SESSION_FILE = SCRIPT_DIR / "spc_session.json"
@@ -68,9 +68,9 @@ def download_report():
             try:
                 page.goto(SPC_URL, timeout=60_000)
                 break
-            except PlaywrightTimeout:
+            except (PlaywrightTimeout, PlaywrightError):
                 if _attempt < 3:
-                    print(f"Navigation timed out (attempt {_attempt}/3). Waiting 30s before retry…")
+                    print(f"Navigation failed (attempt {_attempt}/3) — VPN may still be connecting. Waiting 30s…")
                     time.sleep(30)
                     page = context.new_page()
                 else:

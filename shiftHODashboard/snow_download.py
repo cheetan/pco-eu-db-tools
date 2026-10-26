@@ -21,34 +21,26 @@ BROWSER_CHANNEL = "chrome"  # change to "msedge" if you use Edge
 
 SNOW_ALERT_URL = (
     "https://itsm.services.sap/now/sow/list/params/list-id/aab8952a2f69b69cb9d4fb2cbfa4e32a"
-    "/__state__/b64~eyJlNGQ0NmFiM2ViYzQxMjEwMzg5MGRkZGUyMzUyMjhhOCI6eyJsaXN0X2NvbnRyb2"
-    "xsZXIiOnsiXyI6eyJncm91cEJ5IjoiIiwicXVlcnkiOiJhc3NpZ25tZW50X2dyb3VwLnN5c19pZElOam"
-    "F2YXNjcmlwdDpnbG9iYWwuc2FwX3VzZXJHcm91cHMoKTteT1J1X2FwcF9jb21wb25lbnQudV9wc19mdW"
-    "5jX25leElOamF2YXNjcmlwdDp4X3NhcGRhX2Nhc2VfYXBpLlNBUF9HZXRfVXNlcl9BcmVhKCk7XnN0YX"
-    "RlSU5udWxsLDEsMiwtM151X3NvdXJjZT1ldmVudF5PUkRFUkJZREVTQ3N5c191cGRhdGVkX29uXnVfYXBw"
-    "X2NvbXBvbmVudD03NTMyZTE0MmZmMTMwNjk0OWZlYmZkNjZlMzRmZDlhZSIsImN1cnJlbnRQYWdlIjow"
-    "fX19fQ%3D%3D"
+    "/__state__/b64-tiny~TuwBdaJx92hcyxoZ0JbseY0Ls82dzPdo"
 )
 
 SNOW_CASE_URL = (
-    "https://itsm.services.sap/now/cwf/agent/list/params/list-id/6fa646af2f6d83541b84838e8ea4e359"
+    "https://itsm.services.sap/now/cwf/agent/list/params/list-id/364b19a22f2db69cb9d4fb2cbfa4e304"
     "/__state__/b64~eyIwYzY5ZGFlOGNjODQyMjEwZjg3Nzk5NTgzZTE2NjhiMiI6eyJsaXN0X2NvbnRyb2"
-    "xsZXIiOnsiXyI6eyJncm91cEJ5IjoiIiwicXVlcnkiOiJhc3NpZ25tZW50X2dyb3VwLnN5c19pZElOam"
-    "F2YXNjcmlwdDpnbG9iYWwuc2FwX3VzZXJHcm91cHMoKTteT1J1X2FwcF9jb21wb25lbnQudV9wc19mdW"
-    "5jX25leElOamF2YXNjcmlwdDp4X3NhcGRhX2Nhc2VfYXBpLlNBUF9HZXRfVXNlcl9BcmVhKCk7XnN0YX"
-    "RlSU5udWxsLDEsMTBedV9hcHBfY29tcG9uZW50LnVfbmFtZVNUQVJUU1dJVEhQQ08tT1BTXk9SREVS"
-    "QllERVNDc3lzX3VwZGF0ZWRfb25eR1JPVVBCWXVfYXBwX2NvbXBvbmVudCIsImN1cnJlbnRQYWdlIjow"
-    "fX19fQ%3D%3D"
+    "xsZXIiOnsiXyI6eyJncm91cEJ5IjoiIiwicXVlcnkiOiJhc3NpZ25tZW50X2dyb3VwLnN5c19pZElOZDZj"
+    "MWY4Y2FlYmMyMjI5MDc0YzNmMjRlMGJkMGNkZjAsZjNkMWIwNGFlYmM2NjI5MDE1N2ZmYjkzZGFkMGNk"
+    "YjAsZWFjMTNjY2FlYmMyMjI5MDc0YzNmMjRlMGJkMGNkN2QsZTJjMTNjY2FlYmMyMjI5MDc0YzNmMjRl"
+    "MGJkMGNkODAsMjNkMWIwNGFlYmM2NjI5MDE1N2ZmYjkzZGFkMGNkMzMsMmVjMTNjY2FlYmMyMjI5MDc0"
+    "YzNmMjRlMGJkMGNkZjQsZTdkMTcwNGFlYmM2NjI5MDE1N2ZmYjkzZGFkMGNkZTJeT1J1X2FwcF9jb21w"
+    "b25lbnQudV9wc19mdW5jX25leElOamF2YXNjcmlwdDp4X3NhcGRhX2Nhc2VfYXBpLlNBUF9HZXRfVXNlcl"
+    "9BcmVhKCk7XnN0YXRlSU5udWxsLDEsMTAsMThedV9hcHBfY29tcG9uZW50LnVfbmFtZVNUQVJUU1dJVEhQ"
+    "Q08tT1BTXk9SREVSQllERVNDc3lzX3VwZGF0ZWRfb25eR1JPVVBCWXVfYXBwX2NvbXBvbmVudCIsImN1cn"
+    "JlbnRQYWdlIjowfX19fQ%3D%3D"
 )
 
 SNOW_INC_URL = (
     "https://itsm.services.sap/now/sow/list/params/list-id/ab4a9da22fe9b69cb9d4fb2cbfa4e38f"
-    "/__state__/b64~eyJlNGQ0NmFiM2ViYzQxMjEwMzg5MGRkZGUyMzUyMjhhOCI6eyJsaXN0X2NvbnRyb2"
-    "xsZXIiOnsiXyI6eyJncm91cEJ5IjoiIiwicXVlcnkiOiJhc3NpZ25tZW50X2dyb3VwLnN5c19pZElOam"
-    "F2YXNjcmlwdDpnbG9iYWwuc2FwX3VzZXJHcm91cHMoKTteT1J1X2FwcF9jb21wb25lbnQudV9wc19mdW"
-    "5jX25leElOamF2YXNjcmlwdDp4X3NhcGRhX2Nhc2VfYXBpLlNBUF9HZXRfVXNlcl9BcmVhKCk7XnN0YX"
-    "RlSU5udWxsLDEsMiwtM151X3NvdXJjZSE9ZXZlbnReR1JPVVBCWXVfYXBwX2NvbXBvbmVudF5PUkRFUk"
-    "JZREVTQ3N5c191cGRhdGVkX29uIiwiY3VycmVudFBhZ2UiOjB9fX19"
+    "/__state__/b64-tiny~hAUQmgzDrcthpjEosMCtWer9NpUy8qgS"
 )
 
 

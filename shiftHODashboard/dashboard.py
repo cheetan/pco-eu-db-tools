@@ -986,10 +986,10 @@ def main():
         if not _DOWNLOADS_AVAILABLE:
             print("Download scripts not found — skipping refresh.")
         else:
-            print("Refreshing SPC data …")
-            _spc_download()
             print("Refreshing Snow data …")
             _snow_download(do_alert=True, do_case=True, do_inc=True)
+            print("Refreshing SPC data …")
+            _spc_download()
 
     now_eet    = datetime.now(EET)
     shift_name = arg or detect_shift(now_eet)
