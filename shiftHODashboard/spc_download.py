@@ -59,7 +59,7 @@ def download_report():
 
     print("Launching browser with saved session …")
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, channel=BROWSER_CHANNEL)  # set headless=True once it works reliably
+        browser = p.chromium.launch(headless=True, channel=BROWSER_CHANNEL)
         context = browser.new_context(storage_state=str(SESSION_FILE))
         page = context.new_page()
 

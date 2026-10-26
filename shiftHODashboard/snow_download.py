@@ -149,7 +149,7 @@ def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug:
 
     print("Launching browser with saved session …")
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, channel=BROWSER_CHANNEL)
+        browser = p.chromium.launch(headless=True, channel=BROWSER_CHANNEL)
         context = browser.new_context(storage_state=str(SESSION_FILE))
         page = context.new_page()
 
