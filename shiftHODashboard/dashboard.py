@@ -949,25 +949,6 @@ function filterPri(cid, cls, btn) {{
 
 # ── entry point ───────────────────────────────────────────────────────────────
 
-def notify_teams(shift_label, snow_alerts, snow_cases, snow_incs, spc_current, spc_next,
-                 spc_lr, spc_updated):
-    total_spc = spc_current + spc_next + spc_lr + spc_updated
-    message = (
-        f"📊 Shift Dashboard ready — {shift_label}\n"
-        f"🔔 Snow Alerts: {snow_alerts}  |  📋 Snow Cases: {snow_cases}  |  "
-        f"🚨 Internal INCs: {snow_incs}  |  "
-        f"🎫 SPC Tickets: {total_spc} "
-        f"(Current: {spc_current}, Next: {spc_next}, "
-        f"Longrunners: {spc_lr}, Updated: {spc_updated})"
-    )
-    trigger_file = os.path.join(SCRIPT_DIR, "dashboard_ready.txt")
-    try:
-        with open(trigger_file, "w", encoding="utf-8") as f:
-            f.write(message)
-        print("Teams trigger file written — Power Automate will post the notification.")
-    except Exception as e:
-        print(f"Teams trigger file error: {e}")
-
 
 def main():
     # Strip --refresh flag before shift-name parsing
@@ -1038,7 +1019,6 @@ def main():
     print(f"  {len(sr)} total → current: {len(sr_current)}, next: {len(sr_next)}, "
           f"longrunners: {len(sr_lr)}, updated this shift: {len(sr_updated)}")
 
-    print("Generating dashboard …")
     html = build_html(ah, ar_filtered, ch, cr_filtered, ih, ir_filtered, sh, sr,
                       sr_current, sr_next, sr_lr, sr_updated, sm,
                       ho_status=ho_status, shift_label=shift_label,
@@ -1046,10 +1026,6 @@ def main():
                       prev_shift_label=prev_shift_label)
     with open(OUT_HTML, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"Saved  → {OUT_HTML}")
-    print("Opened in browser.")
-    notify_teams(shift_label, len(ar_filtered), len(cr_filtered), len(ir_filtered),
-                 len(sr_current), len(sr_next), len(sr_lr), len(sr_updated))
 
 
 if __name__ == "__main__":
