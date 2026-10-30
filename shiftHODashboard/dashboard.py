@@ -14,17 +14,19 @@ from zoneinfo import ZoneInfo
 import xml.etree.ElementTree as ET
 
 try:
-    from spc_download  import download_report   as _spc_download
-    from snow_download import download_reports  as _snow_download
+    from spc_download   import download_report   as _spc_download
+    from snow_download  import download_reports  as _snow_download
+    from maxdb_download import download_report   as _maxdb_download
     _DOWNLOADS_AVAILABLE = True
 except ImportError:
     _DOWNLOADS_AVAILABLE = False
 
-SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-SNOW_ALERT  = os.path.join(SCRIPT_DIR, "SnowAlert.xlsx")
-SNOW_CASE   = os.path.join(SCRIPT_DIR, "SnowCase.xlsx")
-SNOW_INC    = os.path.join(SCRIPT_DIR, "SnowInc.xlsx")
-SPC_REPORT  = os.path.join(SCRIPT_DIR, "SPCReport.xlsx")
+SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+SNOW_ALERT   = os.path.join(SCRIPT_DIR, "SnowAlert.xlsx")
+SNOW_CASE    = os.path.join(SCRIPT_DIR, "SnowCase.xlsx")
+SNOW_INC     = os.path.join(SCRIPT_DIR, "SnowInc.xlsx")
+SPC_REPORT   = os.path.join(SCRIPT_DIR, "SPCReport.xlsx")
+MAXDB_REPORT = os.path.join(SCRIPT_DIR, "MaxDB.xlsx")
 OUT_HTML    = os.path.join(SCRIPT_DIR, "dashboard.html")
 HO_STATUS   = os.path.join(SCRIPT_DIR, "ho_status.json")
 
@@ -971,6 +973,8 @@ def main():
             _snow_download(do_alert=True, do_case=True, do_inc=True)
             print("Refreshing SPC data …")
             _spc_download()
+            print("Refreshing MaxDB data …")
+            _maxdb_download()
 
     now_eet    = datetime.now(EET)
     shift_name = arg or detect_shift(now_eet)
@@ -1018,6 +1022,10 @@ def main():
                                               spc_link, flagged_s, exclude_ids=already_shown)
     print(f"  {len(sr)} total → current: {len(sr_current)}, next: {len(sr_next)}, "
           f"longrunners: {len(sr_lr)}, updated this shift: {len(sr_updated)}")
+
+    print("Reading MaxDB Report …")
+    mh, mr, _mm = read_spc_xlsx(MAXDB_REPORT) if os.path.exists(MAXDB_REPORT) else ([], [], {})
+    print(f"  {len(mr)} rows")
 
     html = build_html(ah, ar_filtered, ch, cr_filtered, ih, ir_filtered, sh, sr,
                       sr_current, sr_next, sr_lr, sr_updated, sm,
