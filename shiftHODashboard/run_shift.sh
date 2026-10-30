@@ -8,7 +8,7 @@ bash "$SCRIPT_DIR/schedule_next_wake.sh"
 caffeinate -i "$PYTHON" "$SCRIPT_DIR/dashboard.py" --refresh
 
 # Upload XLSX files to BTP app
-BASE=https://shift-ho-dashboard.cfapps.eu12-001.hana.ondemand.com
+BASE=https://shift-ho-dashboard.cfapps.eu01-canary.hana.ondemand.com
 DIR=/Users/I324220/Library/CloudStorage/OneDrive-SAPSE/DesktopOneDrive/shiftHODashboard
 EMAIL=catalin.popa@sap.com
 BTP_UPLOAD_KEY=$(security find-generic-password -a "btp-upload" -s "shift-ho-dashboard" -w 2>/dev/null)
