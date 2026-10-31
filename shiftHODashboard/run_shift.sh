@@ -16,9 +16,24 @@ BTP_UPLOAD_KEY=$(security find-generic-password -a "btp-upload" -s "shift-ho-das
 if [ -z "$BTP_UPLOAD_KEY" ]; then
   echo "[btp-upload] WARNING: upload key not found in keychain, skipping BTP upload"
 else
-  curl -sS -F "file=@$DIR/SnowAlert.xlsx"  -H "X-User-Email: $EMAIL" -H "X-Upload-Key: $BTP_UPLOAD_KEY" "$BASE/api/upload/snow_alert"  && echo " [snow_alert OK]"
-  curl -sS -F "file=@$DIR/SnowCase.xlsx"   -H "X-User-Email: $EMAIL" -H "X-Upload-Key: $BTP_UPLOAD_KEY" "$BASE/api/upload/snow_case"   && echo " [snow_case OK]"
-  curl -sS -F "file=@$DIR/SnowInc.xlsx"    -H "X-User-Email: $EMAIL" -H "X-Upload-Key: $BTP_UPLOAD_KEY" "$BASE/api/upload/snow_inc"    && echo " [snow_inc OK]"
-  curl -sS -F "file=@$DIR/SPCReport.xlsx"  -H "X-User-Email: $EMAIL" -H "X-Upload-Key: $BTP_UPLOAD_KEY" "$BASE/api/upload/spc"         && echo " [spc OK]"
-  curl -sS -F "file=@$DIR/MaxDB.xlsx"     -H "X-User-Email: $EMAIL" -H "X-Upload-Key: $BTP_UPLOAD_KEY" "$BASE/api/upload/spc_maxdb"   && echo " [spc_maxdb OK]"
+  echo "[btp-upload] Waiting 10s for OneDrive to finish syncing..."
+  sleep 10
+  for src_file in SnowAlert:snow_alert SnowCase:snow_case SnowInc:snow_inc SPCReport:spc MaxDB:spc_maxdb; do
+    FNAME="${src_file%%:*}.xlsx"
+    SOURCE="${src_file##*:}"
+    if [ ! -f "$DIR/$FNAME" ]; then
+      echo "[btp-upload] WARNING: $FNAME not found, skipping $SOURCE"
+      continue
+    fi
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+      -F "file=@$DIR/$FNAME" \
+      -H "X-User-Email: $EMAIL" \
+      -H "X-Upload-Key: $BTP_UPLOAD_KEY" \
+      "$BASE/api/upload/$SOURCE")
+    if [ "$HTTP_CODE" = "200" ]; then
+      echo " [$SOURCE OK]"
+    else
+      echo " [$SOURCE FAILED HTTP $HTTP_CODE]"
+    fi
+  done
 fi
