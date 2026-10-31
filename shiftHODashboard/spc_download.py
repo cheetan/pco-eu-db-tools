@@ -64,17 +64,17 @@ def download_report():
         page = context.new_page()
 
         print(f"Navigating to SPC …")
-        for _attempt in range(1, 4):
+        for _attempt in range(1, 7):
             try:
                 page.goto(SPC_URL, timeout=60_000)
                 break
             except (PlaywrightTimeout, PlaywrightError):
-                if _attempt < 3:
-                    print(f"Navigation failed (attempt {_attempt}/3) — VPN may still be connecting. Waiting 30s…")
+                if _attempt < 6:
+                    print(f"Navigation failed (attempt {_attempt}/6) — VPN may still be connecting. Waiting 30s…")
                     time.sleep(30)
                     page = context.new_page()
                 else:
-                    print("Navigation failed after 3 attempts. VPN may not be connected.")
+                    print("Navigation failed after 6 attempts. VPN may not be connected.")
                     browser.close()
                     sys.exit(1)
 

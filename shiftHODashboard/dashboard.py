@@ -958,6 +958,14 @@ def main():
     do_refresh = "--refresh" in raw_args
     raw_args   = [a for a in raw_args if a != "--refresh"]
 
+    # --sources snow,spc,maxdb  (default: all three)
+    sources_arg = next((a for a in raw_args if a.startswith("--sources=")), None)
+    if sources_arg:
+        raw_args = [a for a in raw_args if not a.startswith("--sources=")]
+        do_sources = set(sources_arg.split("=", 1)[1].split(","))
+    else:
+        do_sources = {"snow", "spc", "maxdb"}
+
     # Optional positional arg: morning | evening | night
     valid = set(SHIFT_HOURS.keys())
     arg   = raw_args[0].lower() if raw_args else None
@@ -969,12 +977,15 @@ def main():
         if not _DOWNLOADS_AVAILABLE:
             print("Download scripts not found — skipping refresh.")
         else:
-            print("Refreshing Snow data …")
-            _snow_download(do_alert=True, do_case=True, do_inc=True)
-            print("Refreshing SPC data …")
-            _spc_download()
-            print("Refreshing MaxDB data …")
-            _maxdb_download()
+            if "snow" in do_sources:
+                print("Refreshing Snow data …")
+                _snow_download(do_alert=True, do_case=True, do_inc=True)
+            if "spc" in do_sources:
+                print("Refreshing SPC data …")
+                _spc_download()
+            if "maxdb" in do_sources:
+                print("Refreshing MaxDB data …")
+                _maxdb_download()
 
     now_eet    = datetime.now(EET)
     shift_name = arg or detect_shift(now_eet)
