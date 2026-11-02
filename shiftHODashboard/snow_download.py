@@ -158,7 +158,12 @@ def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug:
 
         if do_alert:
             print("Navigating to SnowAlert list …")
-            page.goto(SNOW_ALERT_URL)
+            try:
+                page.goto(SNOW_ALERT_URL, timeout=60_000)
+            except PlaywrightTimeout:
+                print("Navigation to SnowAlert timed out — network may not be ready.")
+                browser.close()
+                sys.exit(1)
             try:
                 page.wait_for_selector("button", timeout=60_000)
                 page.wait_for_load_state("networkidle", timeout=60_000)
@@ -170,7 +175,12 @@ def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug:
 
         if do_case:
             print("Navigating to SnowCase list …")
-            page.goto(SNOW_CASE_URL)
+            try:
+                page.goto(SNOW_CASE_URL, timeout=60_000)
+            except PlaywrightTimeout:
+                print("Navigation to SnowCase timed out — network may not be ready.")
+                browser.close()
+                sys.exit(1)
             try:
                 page.wait_for_selector("button", timeout=60_000)
                 page.wait_for_load_state("networkidle", timeout=60_000)
@@ -182,7 +192,12 @@ def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug:
 
         if do_inc:
             print("Navigating to Snow Internal INCs list …")
-            page.goto(SNOW_INC_URL)
+            try:
+                page.goto(SNOW_INC_URL, timeout=60_000)
+            except PlaywrightTimeout:
+                print("Navigation to SnowInc timed out — network may not be ready.")
+                browser.close()
+                sys.exit(1)
             try:
                 page.wait_for_selector("button", timeout=60_000)
                 page.wait_for_load_state("networkidle", timeout=60_000)
