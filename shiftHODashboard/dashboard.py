@@ -966,6 +966,15 @@ def main():
     else:
         do_sources = {"snow", "spc", "maxdb"}
 
+    # --extra-output-dir=PATH  (copy xlsx files here immediately after download)
+    extra_dir_arg = next((a for a in raw_args if a.startswith("--extra-output-dir=")), None)
+    if extra_dir_arg:
+        from pathlib import Path as _Path
+        raw_args = [a for a in raw_args if not a.startswith("--extra-output-dir=")]
+        extra_output_dir = _Path(extra_dir_arg.split("=", 1)[1])
+    else:
+        extra_output_dir = None
+
     # Optional positional arg: morning | evening | night
     valid = set(SHIFT_HOURS.keys())
     arg   = raw_args[0].lower() if raw_args else None
@@ -979,13 +988,13 @@ def main():
         else:
             if "snow" in do_sources:
                 print("Refreshing Snow data …")
-                _snow_download(do_alert=True, do_case=True, do_inc=True)
+                _snow_download(do_alert=True, do_case=True, do_inc=True, extra_output_dir=extra_output_dir)
             if "spc" in do_sources:
                 print("Refreshing SPC data …")
-                _spc_download()
+                _spc_download(extra_output_dir=extra_output_dir)
             if "maxdb" in do_sources:
                 print("Refreshing MaxDB data …")
-                _maxdb_download()
+                _maxdb_download(extra_output_dir=extra_output_dir)
 
     now_eet    = datetime.now(EET)
     shift_name = arg or detect_shift(now_eet)

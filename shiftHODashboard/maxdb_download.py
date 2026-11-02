@@ -64,8 +64,7 @@ def setup_session():
         browser.close()
 
 
-def download_report():
-    """Use the saved SPC session to export MaxDB Activities and save as MaxDB.xlsx."""
+def download_report(extra_output_dir=None):
     if not SESSION_FILE.exists():
         print("No session found. Run spc_download.py --setup first.")
         sys.exit(1)
@@ -153,6 +152,9 @@ def download_report():
 
         download.save_as(str(OUTPUT_FILE))
         print(f"Saved → {OUTPUT_FILE}")
+        if extra_output_dir:
+            import shutil
+            shutil.copy2(str(OUTPUT_FILE), str(extra_output_dir / OUTPUT_FILE.name))
 
         context.storage_state(path=str(SESSION_FILE))
         browser.close()

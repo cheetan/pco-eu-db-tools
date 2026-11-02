@@ -62,7 +62,7 @@ def setup_session():
         browser.close()
 
 
-def export_report(page, output_file: Path, debug: bool = False):
+def export_report(page, output_file: Path, debug: bool = False, extra_output_dir: Path = None):
     """Clicks Export → Export in the popup and saves the downloaded file."""
     print(f"Clicking Export for {output_file.name} …")
     try:
@@ -131,10 +131,13 @@ def export_report(page, output_file: Path, debug: bool = False):
 
     download.save_as(str(output_file))
     print(f"Saved → {output_file}")
+    if extra_output_dir:
+        import shutil
+        shutil.copy2(str(output_file), str(extra_output_dir / output_file.name))
     return True
 
 
-def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug: bool = False):
+def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug: bool = False, extra_output_dir: Path = None):
     if not SESSION_FILE.exists():
         print("No session found. Run with --setup first.")
         sys.exit(1)
@@ -163,7 +166,7 @@ def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug:
                 print("Page took too long to load. Session may have expired — run --setup again.")
                 browser.close()
                 sys.exit(1)
-            export_report(page, SCRIPT_DIR / "SnowAlert.xlsx", debug)
+            export_report(page, SCRIPT_DIR / "SnowAlert.xlsx", debug, extra_output_dir)
 
         if do_case:
             print("Navigating to SnowCase list …")
@@ -175,7 +178,7 @@ def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug:
                 print("Page took too long to load. Session may have expired — run --setup again.")
                 browser.close()
                 sys.exit(1)
-            export_report(page, SCRIPT_DIR / "SnowCase.xlsx", debug)
+            export_report(page, SCRIPT_DIR / "SnowCase.xlsx", debug, extra_output_dir)
 
         if do_inc:
             print("Navigating to Snow Internal INCs list …")
@@ -187,7 +190,7 @@ def download_reports(do_alert: bool, do_case: bool, do_inc: bool = False, debug:
                 print("Page took too long to load. Session may have expired — run --setup again.")
                 browser.close()
                 sys.exit(1)
-            export_report(page, SCRIPT_DIR / "SnowInc.xlsx", debug)
+            export_report(page, SCRIPT_DIR / "SnowInc.xlsx", debug, extra_output_dir)
 
         context.storage_state(path=str(SESSION_FILE))
         browser.close()

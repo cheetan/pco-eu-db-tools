@@ -51,7 +51,7 @@ def setup_session():
         browser.close()
 
 
-def download_report():
+def download_report(extra_output_dir=None):
     """Use the saved session to export the SPC report and save it as SPCReport.xlsx."""
     if not SESSION_FILE.exists():
         print("No session found. Run with --setup first.")
@@ -119,6 +119,9 @@ def download_report():
 
         download.save_as(str(OUTPUT_FILE))
         print(f"Saved → {OUTPUT_FILE}")
+        if extra_output_dir:
+            import shutil
+            shutil.copy2(str(OUTPUT_FILE), str(extra_output_dir / OUTPUT_FILE.name))
 
         # Save refreshed session cookies so it stays valid longer
         context.storage_state(path=str(SESSION_FILE))
