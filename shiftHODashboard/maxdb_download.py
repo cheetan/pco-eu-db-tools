@@ -101,16 +101,37 @@ def download_report(extra_output_dir=None):
 
         # Switch to the MaxDB view via the upper-left view selector dropdown.
         # The dropdown renders items as <li class="sapMSelectListItemBase …"> after ~3s.
+        # Try combobox indices 0..4 to find the one whose list contains MAXDB_VIEW —
+        # guards against SAPUI5 page structure changes that shift the combobox order.
         print(f"Switching to '{MAXDB_VIEW}' view …")
+        found_view = False
         try:
-            page.get_by_role("combobox").nth(1).click(timeout=10_000, force=True)
-            page.wait_for_timeout(3000)
-            item = page.locator("li.sapMSelectListItemBase").filter(has_text=MAXDB_VIEW)
-            item.scroll_into_view_if_needed(timeout=10_000)
-            item.click(timeout=10_000)
+            for cb_idx in range(5):
+                cb = page.get_by_role("combobox").nth(cb_idx)
+                if cb.count() == 0:
+                    break
+                cb.click(timeout=10_000, force=True)
+                page.wait_for_timeout(2000)
+                item = page.locator("li.sapMSelectListItemBase").filter(has_text=MAXDB_VIEW)
+                if item.count() > 0:
+                    item.scroll_into_view_if_needed(timeout=10_000)
+                    item.click(timeout=10_000)
+                    found_view = True
+                    print(f"  Found '{MAXDB_VIEW}' via combobox index {cb_idx}")
+                    break
+                # Log what's visible so a debug run shows available view names
+                available = page.locator("li.sapMSelectListItemBase").all_text_contents()
+                if available:
+                    print(f"  combobox[{cb_idx}] items: {available[:8]}")
+                page.keyboard.press("Escape")
+                page.wait_for_timeout(500)
         except PlaywrightTimeout:
+            pass
+
+        if not found_view:
             page.screenshot(path=str(SCRIPT_DIR / "maxdb_debug.png"), full_page=True)
             print(f"Could not switch to '{MAXDB_VIEW}' view — screenshot → maxdb_debug.png")
+            print("Tip: run 'python3 maxdb_download.py --setup' to inspect the view list in a real browser.")
             browser.close()
             sys.exit(1)
 

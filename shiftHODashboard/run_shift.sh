@@ -6,6 +6,7 @@ PYTHON=/opt/homebrew/bin/python3
 bash "$SCRIPT_DIR/schedule_next_wake.sh"
 
 caffeinate -i "$PYTHON" "$SCRIPT_DIR/dashboard.py" --refresh
+REFRESH_EXIT=$?
 
 # Upload XLSX files to BTP app
 BASE=https://shift-ho-dashboard.cfapps.eu01-canary.hana.ondemand.com
@@ -21,6 +22,11 @@ else
   for src_file in SnowAlert:snow_alert SnowCase:snow_case SnowInc:snow_inc SPCReport:spc MaxDB:spc_maxdb; do
     FNAME="${src_file%%:*}.xlsx"
     SOURCE="${src_file##*:}"
+    # Don't upload a stale MaxDB.xlsx if the refresh failed
+    if [ "$SOURCE" = "spc_maxdb" ] && [ "$REFRESH_EXIT" != "0" ]; then
+      echo "[btp-upload] Skipping $SOURCE — dashboard.py exited with code $REFRESH_EXIT (MaxDB download may have failed)"
+      continue
+    fi
     if [ ! -f "$DIR/$FNAME" ]; then
       echo "[btp-upload] WARNING: $FNAME not found, skipping $SOURCE"
       continue
