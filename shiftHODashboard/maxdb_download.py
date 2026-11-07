@@ -1,18 +1,19 @@
 """
 Automates the MaxDB Activities export from spc.ondemand.com.
 
-Uses the same saved session as spc_download.py (same domain / SSO).
-After the page loads it switches to the "EU Non-Core MaxDB L2" saved view,
-then follows the same Export → Microsoft Excel flow as SPC.
+Uses a dedicated session file (maxdb_session.json) that stores the SPC
+session with the "EU Non-Core MaxDB DB L2" view already selected in
+localStorage. SAPUI5 restores this view on every page load, so no
+dropdown interaction is needed in headless mode.
+
+First-time setup bootstraps from spc_session.json (so no re-login is
+required) and saves to maxdb_session.json after the user selects the
+MaxDB view manually.
 
 Usage:
-  python3 maxdb_download.py --setup   # First time: verify session and navigate to MaxDB view
+  python3 maxdb_download.py --setup   # First time (or after session expires):
+                                      # opens browser, select MaxDB view, press ENTER
   python3 maxdb_download.py           # Normal run: headless download → MaxDB.xlsx
-
-To find the exact view-selector if the default locator fails:
-  playwright codegen https://spc.ondemand.com/...   (use SPC_URL below)
-  Look for the element that shows the current view name (e.g. "My Open Tickets")
-  and copy its selector here.
 """
 
 import argparse
@@ -21,9 +22,10 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout, Error as PlaywrightError
 
-SCRIPT_DIR   = Path(__file__).parent
-SESSION_FILE = SCRIPT_DIR / "spc_session.json"   # shared with spc_download.py
-OUTPUT_FILE  = SCRIPT_DIR / "MaxDB.xlsx"
+SCRIPT_DIR       = Path(__file__).parent
+SESSION_FILE     = SCRIPT_DIR / "maxdb_session.json"   # dedicated — never shared with spc_download.py
+SPC_SESSION_FILE = SCRIPT_DIR / "spc_session.json"     # used as base for first-time --setup only
+OUTPUT_FILE      = SCRIPT_DIR / "MaxDB.xlsx"
 
 BROWSER_CHANNEL = "chrome"
 
@@ -41,32 +43,33 @@ MAXDB_VIEW = "EU Non-Core MaxDB DB L2"
 
 
 def setup_session():
-    """Open browser with existing SPC session so you can verify the MaxDB view is reachable."""
-    if not SESSION_FILE.exists():
+    """Open browser so you can select the MaxDB view and save a dedicated session."""
+    # Bootstrap from the existing SPC session if maxdb_session.json doesn't exist yet
+    base = SESSION_FILE if SESSION_FILE.exists() else SPC_SESSION_FILE
+    if not base.exists():
         print("No session found. Run spc_download.py --setup first to log in.")
         sys.exit(1)
 
-    print(f"Opening browser with saved SPC session …")
-    print(f"Navigate to the '{MAXDB_VIEW}' view using the upper-left dropdown.")
-    print("Once the MaxDB ticket list is visible, press ENTER here.")
+    print(f"Opening browser (base session: {base.name}) …")
+    print(f"Select the '{MAXDB_VIEW}' view from the dropdown, wait for the ticket list to load,")
+    print("then press ENTER here to save the session.")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, channel=BROWSER_CHANNEL)
-        context = browser.new_context(storage_state=str(SESSION_FILE))
+        context = browser.new_context(storage_state=str(base))
         page = context.new_page()
         page.goto(SPC_URL, timeout=60_000)
 
-        input(f"\n>>> Press ENTER once you can see the '{MAXDB_VIEW}' ticket list: ")
+        input(f"\n>>> Press ENTER once the '{MAXDB_VIEW}' ticket list is visible: ")
 
-        # Refresh the shared session so it stays valid
         context.storage_state(path=str(SESSION_FILE))
-        print(f"Session refreshed → {SESSION_FILE}")
+        print(f"Session saved → {SESSION_FILE}")
         browser.close()
 
 
 def download_report(extra_output_dir=None):
     if not SESSION_FILE.exists():
-        print("No session found. Run spc_download.py --setup first.")
+        print("No session found. Run: python3 maxdb_download.py --setup")
         sys.exit(1)
 
     print("Launching browser with saved session …")
@@ -90,30 +93,20 @@ def download_report(extra_output_dir=None):
                     browser.close()
                     sys.exit(1)
 
-        print("Waiting for page to load …")
+        # SAPUI5 restores the last selected view from localStorage stored in maxdb_session.json.
+        # As long as --setup was run with the MaxDB view selected, the correct view loads here.
+        print(f"Waiting for '{MAXDB_VIEW}' view to restore from session …")
         try:
             page.wait_for_selector("button", timeout=60_000)
             page.wait_for_load_state("networkidle", timeout=60_000)
         except PlaywrightTimeout:
-            print("Page took too long to load. Session may have expired — run spc_download.py --setup.")
-            browser.close()
-            sys.exit(1)
-
-        # The saved-view selector in SAPUI5 is NOT a combobox — it is a button/popup control
-        # whose state is stored in localStorage. Running --setup with the correct view selected
-        # saves that state into spc_session.json, so the page loads with the right view restored.
-        # We simply wait for the page to finish loading with the view already applied.
-        print(f"Waiting for '{MAXDB_VIEW}' view to restore from session …")
-        try:
-            page.wait_for_load_state("networkidle", timeout=60_000)
-        except PlaywrightTimeout:
             page.screenshot(path=str(SCRIPT_DIR / "maxdb_debug.png"), full_page=True)
-            print("Page took too long to stabilise — screenshot → maxdb_debug.png")
-            print("Tip: run 'python3 maxdb_download.py --setup' to re-save the session with the correct view.")
+            print("Page took too long to load — screenshot → maxdb_debug.png")
+            print("Session may have expired. Run: python3 maxdb_download.py --setup")
             browser.close()
             sys.exit(1)
 
-        # Click Go to execute the query for the selected view
+        # Click Go to execute the query for the restored view
         print("Loading ticket list …")
         try:
             go_btn = page.get_by_role("button", name="Go")
@@ -162,7 +155,7 @@ def download_report(extra_output_dir=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--setup", action="store_true",
-                        help="Verify session and navigate to MaxDB view manually")
+                        help="Open browser to select MaxDB view and save a dedicated session")
     args = parser.parse_args()
 
     if args.setup:
